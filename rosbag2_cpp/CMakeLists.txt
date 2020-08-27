@@ -66,18 +66,22 @@ add_library(${PROJECT_NAME} SHARED
   src/rosbag2_cpp/reindexer.cpp
   src/rosbag2_cpp/reindexers/sequential_reindexer.cpp)
 
-target_link_libraries(${PROJECT_NAME} Boost::filesystem)
+target_link_libraries(${PROJECT_NAME}
+  PRIVATE
+    Boost::filesystem
+)
 
 ament_target_dependencies(${PROJECT_NAME}
-  ament_index_cpp
-  pluginlib
-  rcpputils
-  rcutils
-  rosbag2_storage
-  rosidl_runtime_c
-  rosidl_runtime_cpp
-  rosidl_typesupport_cpp
-  rosidl_typesupport_introspection_cpp
+  PUBLIC
+    ament_index_cpp
+    pluginlib
+    rcpputils
+    rcutils
+    rosbag2_storage
+    rosidl_runtime_c
+    rosidl_runtime_cpp
+    rosidl_typesupport_cpp
+    rosidl_typesupport_introspection_cpp
 )
 
 
