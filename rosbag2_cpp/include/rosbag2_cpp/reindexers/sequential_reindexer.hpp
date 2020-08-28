@@ -68,6 +68,8 @@ public:
 
   void reset();
 
+  void finalize_metadata();
+
 protected:
 
   std::unique_ptr<rosbag2_storage::StorageFactoryInterface> storage_factory_{};
@@ -80,9 +82,10 @@ protected:
   std::vector<std::string>::iterator current_file_iterator_{};  // Index of file to read from
 
 private:
+  std::string base_folder_;
   std::shared_ptr<SerializationFormatConverterFactoryInterface> converter_factory_{};
 
-  std::vector<std::string> get_database_files(const StorageOptions & storage_options);
+  std::vector<std::string> get_database_files(std::string base_folder);
   
   // Prepares the metadata by setting initial values.
   void init_metadata();

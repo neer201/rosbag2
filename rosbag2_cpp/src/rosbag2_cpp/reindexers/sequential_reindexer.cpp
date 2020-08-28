@@ -86,20 +86,17 @@ void SequentialReindexer::reset()
   }
 }
 
-std::vector<std::string> SequentialReindexer::get_database_files(const StorageOptions & storage_options)
+std::vector<std::string> SequentialReindexer::get_database_files(std::string base_folder)
 {
-  auto uri = storage_options.uri;
-
   // Look in the uri directory to see what database files are there
   std::vector<std::string> output;
-  for(auto& p_: boost::filesystem::directory_iterator(uri))
+  for(auto& p_: boost::filesystem::directory_iterator(base_folder))
   {
     // We are ONLY interested in database files
     if (p_.path().extension() != ".db3")
     {
       continue;
     }
-    std::cout << p_.path() << "\n";  // Debugging
 
     output.emplace_back(p_.path().c_str());
   }
@@ -120,20 +117,25 @@ std::vector<std::string> SequentialReindexer::get_database_files(const StorageOp
 void SequentialReindexer::open(
   const StorageOptions & storage_options)
 {
-  auto files = get_database_files(storage_options);
+  base_folder_ = storage_options.uri;
+  auto files = get_database_files(base_folder_);
+  if (files.empty()){
+    ROSBAG2_CPP_LOG_ERROR("No database files found for reindexing. Abort");
+    return;
+  }
   // Since this is a reindexing operation, assume that there is no metadata.yaml file.
   // As such, ask the storage with the given URI for its metadata.
-  std::cout << "Running storage_factory_->open_read_only()\n";
   storage_ = storage_factory_->open_read_only(
-    storage_options.uri, storage_options.storage_id);
+    files[0], storage_options.storage_id);
   if (!storage_) {
     throw std::runtime_error{"No storage could be initialized. Abort"};
   }
-  std::cout << "Running storage_->get_metadata()\n";
   metadata_ = storage_->get_metadata();
-  if (metadata_.relative_file_paths.empty()) {
-    ROSBAG2_CPP_LOG_WARN("No file paths were found in metadata.");
-    return;
+  metadata_.relative_file_paths.clear();  // The found path is going to be incorrect since we're accessing a random DB
+  for (const auto & path : files) {
+    auto cleaned_path = strip_parent_path(path);
+    // std::cout << "Cleaned: " << cleaned_path << "\n";
+    metadata_.relative_file_paths.push_back(cleaned_path);
   }
   file_paths_ = metadata_.relative_file_paths;
   current_file_iterator_ = file_paths_.begin();
@@ -155,22 +157,50 @@ void SequentialReindexer::fill_topics_metadata()
   }
 }
 
-void SequentialReindexer::init_metadata()
-{
-  metadata_ = rosbag2_storage::BagMetadata{};
-  metadata_.storage_identifier = storage_->get_storage_identifier();
-  metadata_.starting_time = std::chrono::time_point<std::chrono::high_resolution_clock>(
-    std::chrono::nanoseconds::max());
-  metadata_.relative_file_paths = {strip_parent_path(storage_->get_relative_file_path())};
-}
+// void SequentialReindexer::init_metadata()
+// {
+//   metadata_ = rosbag2_storage::BagMetadata{};
+//   metadata_.storage_identifier = storage_->get_storage_identifier();
+//   metadata_.starting_time = std::chrono::time_point<std::chrono::high_resolution_clock>(
+//     std::chrono::nanoseconds::max());
+//   // metadata_.relative_file_paths = {strip_parent_path(storage_->get_relative_file_path())};
+//   for (const auto & path : metadata_.relative_file_paths) {
+//     std::cout << path << "\n";
+//   }
+// }
 
 void SequentialReindexer::reindex()
 {
+  ROSBAG2_CPP_LOG_INFO("Beginning Reindex Operation.");
   // init_metadata();  // Create a baseline to start from
-  throw std::runtime_error("Successfully called Reindex!");
 
+  finalize_metadata();
+
+  metadata_io_->write_metadata(base_folder_, metadata_);
+  ROSBAG2_CPP_LOG_INFO("Reindexing operation completed.");
 
 }
 
+void SequentialReindexer::finalize_metadata()
+{
+  metadata_.bag_size = 0;
+
+  for (const auto & path : metadata_.relative_file_paths) {
+    const auto bag_path = rcpputils::fs::path{path};
+
+    if (bag_path.exists()) {
+      metadata_.bag_size += bag_path.file_size();
+    }
+  }
+
+  // metadata_.topics_with_message_count.clear();
+  // metadata_.topics_with_message_count.reserve(topics_names_to_info_.size());
+  // metadata_.message_count = 0;
+
+  // for (const auto & topic : topics_names_to_info_) {
+  //   metadata_.topics_with_message_count.push_back(topic.second);
+  //   metadata_.message_count += topic.second.message_count;
+  // }
+}
 }  // namespace readers
 }  // namespace rosbag2_cpp
