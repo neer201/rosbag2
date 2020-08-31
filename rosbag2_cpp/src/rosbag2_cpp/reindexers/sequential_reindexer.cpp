@@ -88,15 +88,22 @@ void SequentialReindexer::reset()
 }
 
 
-static bool comp_rel_file(const std::string &first_path, const std::string &second_path)
+bool SequentialReindexer::comp_rel_file(const std::string &first_path, const std::string &second_path)
 {
-  std::regex regex_rule("(\\d+).db3$", std::regex_constants::ECMAScript);
+  // ROSBAG2_CPP_LOG_DEBUG("Comparing first path \"%s\" with second path \"%s\"", first_path.c_str(), second_path.c_str());
+  std::cout << "Comparing first path \"" << first_path << "\" with second path \"" << second_path << "\"\n";
+  std::regex regex_rule("(\\d+)\\.db3", std::regex_constants::ECMAScript);
 
   std::smatch first_match;
   std::smatch second_match;
 
   auto first_regex_good = std::regex_match(first_path, first_match, regex_rule);
+  std::cout << "First Regex match status: " << first_regex_good << "\n";
+  std::cout << "First Match: \"" << first_match.str() << "\"\n";
+
   auto second_regex_good = std::regex_match(second_path, second_match, regex_rule);
+  std::cout << "Second Regex match status: " << second_regex_good << "\n";
+  std::cout << "Second Match: \"" << second_match.str() << "\"\n";
 
   // Make sure the paths have regex matches
   if (!first_regex_good || !second_regex_good)
@@ -128,7 +135,7 @@ std::vector<std::string> SequentialReindexer::get_database_files(std::string bas
   }
 
   // Sort relative file path by database number
-  std::sort(output.begin(), output.end(), [](std::string a, std::string b){return comp_rel_file(a, b)});
+  std::sort(output.begin(), output.end(), [](std::string a, std::string b){return comp_rel_file(a, b);});
 
   return output;
 
