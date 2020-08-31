@@ -128,12 +128,7 @@ std::vector<std::string> SequentialReindexer::get_database_files(std::string bas
   }
 
   // Sort relative file path by database number
-  struct {
-    bool operator()(std::string a, std::string b) const {
-      return comp_rel_file(a, b);
-    } 
-  } customSort;
-  std::sort(output.begin(), output.end(), customSort);
+  std::sort(output.begin(), output.end(), [](std::string a, std::string b){return comp_rel_file(a, b)});
 
   return output;
 
