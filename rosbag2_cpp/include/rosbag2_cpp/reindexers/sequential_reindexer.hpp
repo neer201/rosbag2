@@ -17,6 +17,7 @@
 
 #include <boost/filesystem.hpp>
 #include <memory>
+#include <regex>
 #include <string>
 #include <vector>
 
@@ -86,9 +87,15 @@ private:
   std::shared_ptr<SerializationFormatConverterFactoryInterface> converter_factory_{};
 
   std::vector<std::string> get_database_files(std::string base_folder);
-  
+
   // Prepares the metadata by setting initial values.
   void init_metadata();
+
+  // Attempts to harvest metadata from all bag files, and aggregates the result
+  void aggregate_metadata();
+
+  // Compairson function for std::sort with our filepath convention
+  static bool comp_rel_file(const std::string &first_path, const std::string &second_path);
 };
 
 }  // namespace readers

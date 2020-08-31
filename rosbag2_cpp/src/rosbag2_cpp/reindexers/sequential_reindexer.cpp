@@ -15,6 +15,7 @@
 #include <boost/filesystem.hpp>
 #include <iostream>
 #include <memory>
+#include <regex>
 #include <stdexcept>
 #include <string>
 #include <utility>
@@ -86,6 +87,31 @@ void SequentialReindexer::reset()
   }
 }
 
+
+static bool comp_rel_file(const std::string &first_path, const std::string &second_path)
+{
+  std::regex regex_rule("(\\d+).db3$", std::regex_constants::ECMAScript);
+
+  std::smatch first_match;
+  std::smatch second_match;
+
+  auto first_regex_good = std::regex_match(first_path, first_match, regex_rule);
+  auto second_regex_good = std::regex_match(second_path, second_match, regex_rule);
+
+  // Make sure the paths have regex matches
+  if (!first_regex_good || !second_regex_good)
+  {
+    throw std::runtime_error("Malformed relative file name. Expected numerical identifier.");
+  }
+
+  // Convert database numbers to uint
+  u_int32_t first_db_num = std::stoul(first_match.str(1), nullptr, 10);
+  u_int32_t second_db_num = std::stoul(second_match.str(1), nullptr, 10);
+  
+  return first_db_num < second_db_num;
+
+}
+
 std::vector<std::string> SequentialReindexer::get_database_files(std::string base_folder)
 {
   // Look in the uri directory to see what database files are there
@@ -100,6 +126,14 @@ std::vector<std::string> SequentialReindexer::get_database_files(std::string bas
 
     output.emplace_back(p_.path().c_str());
   }
+
+  // Sort relative file path by database number
+  struct {
+    bool operator()(std::string a, std::string b) const {
+      return comp_rel_file(a, b);
+    } 
+  } customSort;
+  std::sort(output.begin(), output.end(), customSort);
 
   return output;
 
@@ -168,6 +202,11 @@ void SequentialReindexer::fill_topics_metadata()
 //     std::cout << path << "\n";
 //   }
 // }
+
+void SequentialReindexer::aggregate_metadata()
+{
+
+}
 
 void SequentialReindexer::reindex()
 {
