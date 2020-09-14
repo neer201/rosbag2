@@ -59,7 +59,10 @@ Rosbag2Transport::Rosbag2Transport(
   std::shared_ptr<rosbag2_cpp::Writer> writer,
   std::shared_ptr<rosbag2_cpp::Info> info,
   std::shared_ptr<rosbag2_cpp::Reindexer> reindexer)
-: reader_(std::move(reader)), writer_(std::move(writer)), info_(std::move(info)), reindexer_(std::move(reindexer)) {}
+: reader_(std::move(reader)),
+  writer_(std::move(writer)),
+  info_(std::move(info)),
+  reindexer_(std::move(reindexer)) {}
 
 void Rosbag2Transport::init()
 {
@@ -114,7 +117,7 @@ void Rosbag2Transport::play(
   }
 }
 
-void  Rosbag2Transport::reindex(
+void Rosbag2Transport::reindex(
   const StorageOptions & storage_options)
 {
   try {

@@ -353,18 +353,19 @@ rosbag2_transport_reindex(PyObject * Py_UNUSED(self), PyObject * args, PyObject 
 {
   rosbag2_transport::StorageOptions storage_options{};
   rosbag2_transport::RecordOptions record_options{};
-  static const char * kwlist[] = {"uri", "storage_id", "serialization_format", "compression_format", nullptr};
+  static const char * kwlist[] =
+  {"uri", "storage_id", "serialization_format", "compression_format", nullptr};
 
   char * char_uri = nullptr;
   char * char_storage_id = nullptr;
   char * char_serialization_fmt = nullptr;
   char * char_compression_fmt = nullptr;
   if (!PyArg_ParseTupleAndKeywords(
-    args, kwargs, "ssss", const_cast<char **>(kwlist),
-    &char_uri,
-    &char_storage_id,
-    &char_serialization_fmt,
-    &char_compression_fmt))
+      args, kwargs, "ssss", const_cast<char **>(kwlist),
+      &char_uri,
+      &char_storage_id,
+      &char_serialization_fmt,
+      &char_compression_fmt))
   {
     return nullptr;
   }
@@ -394,7 +395,7 @@ rosbag2_transport_reindex(PyObject * Py_UNUSED(self), PyObject * args, PyObject 
   // }
   auto writer = std::make_shared<rosbag2_cpp::Writer>(
     std::make_unique<rosbag2_cpp::writers::SequentialWriter>());
-  
+
   rosbag2_transport::Rosbag2Transport transport(reader, writer, info, reindexer);
   transport.init();
   transport.reindex(storage_options);
@@ -422,7 +423,9 @@ static PyMethodDef rosbag2_transport_methods[] = {
     "Print bag info"
   },
   {
-    "reindex", reinterpret_cast<PyCFunction>(rosbag2_transport_reindex), METH_VARARGS | METH_KEYWORDS,
+    "reindex",
+    reinterpret_cast<PyCFunction>(rosbag2_transport_reindex),
+    METH_VARARGS | METH_KEYWORDS,
     "Reindex bag"
   },
   {nullptr, nullptr, 0, nullptr}  /* sentinel */

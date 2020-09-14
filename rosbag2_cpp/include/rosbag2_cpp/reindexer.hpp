@@ -13,8 +13,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef ROSBAG2_CPP__REINDEXER_HPP
-#define ROSBAG2_CPP__REINDEXER_HPP
+#ifndef ROSBAG2_CPP__REINDEXER_HPP_
+#define ROSBAG2_CPP__REINDEXER_HPP_
 
 #include <memory>
 
@@ -41,9 +41,9 @@ namespace rosbag2_cpp
 namespace reindexer_interfaces
 {
 class BaseReindexerInterface;
-} // namespace reindexer_interfaces
+}  // namespace reindexer_interfaces
 
-/** 
+/**
  * The reindexer attempts to construct a metadata file based on information contained in the bag.
  */
 class ROSBAG2_CPP_PUBLIC Reindexer final
@@ -64,10 +64,10 @@ private:
   std::unique_ptr<reindexer_interfaces::BaseReindexerInterface> reindexer_impl;
 };
 
-} // namespace rosbag2_cpp
+}  // namespace rosbag2_cpp
 
 #ifdef _WIN32
 # pragma warning(pop)
 #endif
 
-#endif  // ROSBAG2_CPP__REINDEXER_HPP
+#endif  // ROSBAG2_CPP__REINDEXER_HPP_

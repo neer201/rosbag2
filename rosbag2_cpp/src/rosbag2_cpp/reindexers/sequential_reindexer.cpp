@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include <boost/filesystem.hpp>
+#include <algorithm>
 #include <iostream>
 #include <memory>
 #include <regex>
@@ -88,9 +89,9 @@ void SequentialReindexer::reset()
 }
 
 
-bool SequentialReindexer::comp_rel_file(const std::string &first_path, const std::string &second_path)
+bool SequentialReindexer::comp_rel_file(
+  const std::string & first_path, const std::string & second_path)
 {
-  // ROSBAG2_CPP_LOG_DEBUG("Comparing first path \"%s\" with second path \"%s\"", first_path.c_str(), second_path.c_str());
   std::regex regex_rule(".*_(\\d+)\\.db3", std::regex_constants::ECMAScript);
 
   std::smatch first_match;
@@ -100,27 +101,24 @@ bool SequentialReindexer::comp_rel_file(const std::string &first_path, const std
   auto second_regex_good = std::regex_match(second_path, second_match, regex_rule);
 
   // Make sure the paths have regex matches
-  if (!first_regex_good || !second_regex_good)
-  {
+  if (!first_regex_good || !second_regex_good) {
     throw std::runtime_error("Malformed relative file name. Expected numerical identifier.");
   }
 
   // Convert database numbers to uint
   u_int32_t first_db_num = std::stoul(first_match.str(1), nullptr, 10);
   u_int32_t second_db_num = std::stoul(second_match.str(1), nullptr, 10);
-  
-  return first_db_num < second_db_num;
 
+  return first_db_num < second_db_num;
 }
 
-std::vector<std::string> SequentialReindexer::get_database_files(const std::string &base_folder)
+std::vector<std::string> SequentialReindexer::get_database_files(const std::string & base_folder)
 {
   // Look in the uri directory to see what database files are there
   std::vector<std::string> output;
-  for(auto& p_: boost::filesystem::directory_iterator(base_folder)) {
+  for (auto & p_ : boost::filesystem::directory_iterator(base_folder)) {
     // We are ONLY interested in database files
-    if (p_.path().extension() != ".db3")
-    {
+    if (p_.path().extension() != ".db3") {
       continue;
     }
 
@@ -129,10 +127,11 @@ std::vector<std::string> SequentialReindexer::get_database_files(const std::stri
   }
 
   // Sort relative file path by database number
-  std::sort(output.begin(), output.end(), [](std::string a, std::string b){return comp_rel_file(a, b);});
+  std::sort(
+    output.begin(), output.end(),
+    [](std::string a, std::string b) {return comp_rel_file(a, b);});
 
   return output;
-
 }
 
 void SequentialReindexer::open(
@@ -158,14 +157,15 @@ void SequentialReindexer::fill_topics_metadata()
   }
 }
 
-void SequentialReindexer::init_metadata(const std::vector<std::string> &files)
+void SequentialReindexer::init_metadata(const std::vector<std::string> & files)
 {
   metadata_ = rosbag2_storage::BagMetadata{};
-  // metadata_.storage_identifier = storage_->get_storage_identifier();
-  metadata_.storage_identifier = "sqlite3"; // This reindexer will only work on SQLite files, so this can't change
+
+  // This reindexer will only work on SQLite files, so this can't change
+  metadata_.storage_identifier = "sqlite3";
   metadata_.starting_time = std::chrono::time_point<std::chrono::high_resolution_clock>(
     std::chrono::nanoseconds::max());
-  
+
   // Record the relative paths to the metadata
   for (const auto & path : files) {
     auto cleaned_path = strip_parent_path(path);
@@ -173,18 +173,19 @@ void SequentialReindexer::init_metadata(const std::vector<std::string> &files)
   }
 }
 
-void SequentialReindexer::aggregate_metadata(const std::vector<std::string> &files, const StorageOptions & storage_options)
+void SequentialReindexer::aggregate_metadata(
+  const std::vector<std::string> & files, const StorageOptions & storage_options)
 {
-  // In order to most accurately reconstruct the metadata, we need to 
+  // In order to most accurately reconstruct the metadata, we need to
   // visit each of the contained relative database files in the bag,
   // open them, slurp up the info, and stuff it into the master
   // metadata object.
   ROSBAG2_CPP_LOG_INFO("Extracting metadata from database(s)");
-  for (const auto &f_ : files) {
+  for (const auto & f_ : files) {
     open(f_, storage_options);  // Class storage_ is now full
 
     auto temp_metadata = storage_->get_metadata();
-    
+
     // Last opened file will have our starting time
     metadata_.starting_time = temp_metadata.starting_time;
     metadata_.duration += temp_metadata.duration;
@@ -192,9 +193,11 @@ void SequentialReindexer::aggregate_metadata(const std::vector<std::string> &fil
 
     // Add the topic metadata
     for (const auto & topic : temp_metadata.topics_with_message_count) {
-      std::cout << "Topic name: \"" << topic.topic_metadata.name << "\" QOS profiles: \"" << topic.topic_metadata.offered_qos_profiles << "\"\n";
-      auto found_topic = std::find_if(metadata_.topics_with_message_count.begin(), metadata_.topics_with_message_count.end(),
-        [&topic](const rosbag2_storage::TopicInformation & agg_topic){return topic.topic_metadata.name == agg_topic.topic_metadata.name;});
+      auto found_topic = std::find_if(
+        metadata_.topics_with_message_count.begin(),
+        metadata_.topics_with_message_count.end(),
+        [&topic](const rosbag2_storage::TopicInformation & agg_topic)
+        {return topic.topic_metadata.name == agg_topic.topic_metadata.name;});
       if (found_topic == metadata_.topics_with_message_count.end()) {
         // It's a new topic. Add it.
         metadata_.topics_with_message_count.emplace_back(topic);
@@ -202,22 +205,22 @@ void SequentialReindexer::aggregate_metadata(const std::vector<std::string> &fil
         // Merge in the new information
         found_topic->message_count += topic.message_count;
         if (topic.topic_metadata.offered_qos_profiles != "") {
-          found_topic->topic_metadata.offered_qos_profiles = topic.topic_metadata.offered_qos_profiles;
+          found_topic->topic_metadata.offered_qos_profiles =
+            topic.topic_metadata.offered_qos_profiles;
         }
         if (topic.topic_metadata.serialization_format != "") {
-          found_topic->topic_metadata.serialization_format = topic.topic_metadata.serialization_format;
+          found_topic->topic_metadata.serialization_format =
+            topic.topic_metadata.serialization_format;
         }
         if (topic.topic_metadata.type != "") {
           found_topic->topic_metadata.type = topic.topic_metadata.type;
         }
       }
-
     }
 
     ROSBAG2_CPP_LOG_INFO("Closing database");
-    storage_.reset(); // Class storage_ is now empty
+    storage_.reset();  // Class storage_ is now empty
   }
-
 }
 
 void SequentialReindexer::reindex(const StorageOptions & storage_options)
@@ -228,7 +231,7 @@ void SequentialReindexer::reindex(const StorageOptions & storage_options)
   base_folder_ = storage_options.uri;
   auto files = get_database_files(base_folder_);
   std::cout << "Finished getting database files\n";
-  if (files.empty()){
+  if (files.empty()) {
     ROSBAG2_CPP_LOG_ERROR("No database files found for reindexing. Abort");
     return;
   }
@@ -244,7 +247,6 @@ void SequentialReindexer::reindex(const StorageOptions & storage_options)
 
   metadata_io_->write_metadata(base_folder_, metadata_);
   ROSBAG2_CPP_LOG_INFO("Reindexing operation completed.");
-
 }
 
 void SequentialReindexer::finalize_metadata()
@@ -258,15 +260,6 @@ void SequentialReindexer::finalize_metadata()
       metadata_.bag_size += bag_path.file_size();
     }
   }
-
-  // metadata_.topics_with_message_count.clear();
-  // metadata_.topics_with_message_count.reserve(topics_names_to_info_.size());
-  // metadata_.message_count = 0;
-
-  // for (const auto & topic : topics_names_to_info_) {
-  //   metadata_.topics_with_message_count.push_back(topic.second);
-  //   metadata_.message_count += topic.second.message_count;
-  // }
 }
-}  // namespace readers
+}  // namespace reindexers
 }  // namespace rosbag2_cpp

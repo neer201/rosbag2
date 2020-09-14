@@ -1,4 +1,3 @@
-
 // Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -37,9 +36,6 @@ class ROSBAG2_CPP_PUBLIC BaseReindexerInterface
 {
 public:
   virtual ~BaseReindexerInterface() {}
-
-  // virtual void open(
-  //   const StorageOptions & storage_options) = 0;
 
   virtual void reindex(const StorageOptions & storage_options) = 0;
 };

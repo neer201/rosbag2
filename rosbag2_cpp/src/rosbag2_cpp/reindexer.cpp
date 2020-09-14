@@ -1,4 +1,3 @@
-
 // Copyright 2018, Bosch Software Innovations GmbH.
 // Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 //
@@ -31,7 +30,7 @@ Reindexer::Reindexer(std::unique_ptr<reindexer_interfaces::BaseReindexerInterfac
 : reindexer_impl(std::move(reindexer_impl))
 {}
 
-Reindexer::~Reindexer(){}
+Reindexer::~Reindexer() {}
 
 void Reindexer::reindex(const StorageOptions & storage_options)
 {
@@ -39,4 +38,4 @@ void Reindexer::reindex(const StorageOptions & storage_options)
 }
 
 
-} //namespace rosbag2_cpp
+}  // namespace rosbag2_cpp

@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef ROSBAG2_CPP__READERS__SEQUENTIAL_REINDEXER_HPP_
-#define ROSBAG2_CPP__READERS__SEQUENTIAL_REINDEXER_HPP_
+#ifndef ROSBAG2_CPP__REINDEXERS__SEQUENTIAL_REINDEXER_HPP_
+#define ROSBAG2_CPP__REINDEXERS__SEQUENTIAL_REINDEXER_HPP_
 
 #include <boost/filesystem.hpp>
 #include <memory>
@@ -70,7 +70,6 @@ public:
   void finalize_metadata();
 
 protected:
-
   std::unique_ptr<rosbag2_storage::StorageFactoryInterface> storage_factory_{};
   std::shared_ptr<rosbag2_storage::storage_interfaces::ReadOnlyInterface> storage_{};
   std::unique_ptr<Converter> converter_{};
@@ -84,27 +83,28 @@ private:
   std::string base_folder_;
   std::shared_ptr<SerializationFormatConverterFactoryInterface> converter_factory_{};
 
-  std::vector<std::string> get_database_files(const std::string &base_folder);
+  std::vector<std::string> get_database_files(const std::string & base_folder);
 
   void open(
     const std::string & database_file,
     const StorageOptions & storage_options);
 
   // Prepares the metadata by setting initial values.
-  void init_metadata(const std::vector<std::string> &files);
+  void init_metadata(const std::vector<std::string> & files);
 
   // Attempts to harvest metadata from all bag files, and aggregates the result
-  void aggregate_metadata(const std::vector<std::string> &files, const StorageOptions & storage_options);
+  void aggregate_metadata(
+    const std::vector<std::string> & files, const StorageOptions & storage_options);
 
   // Compairson function for std::sort with our filepath convention
-  static bool comp_rel_file(const std::string &first_path, const std::string &second_path);
+  static bool comp_rel_file(const std::string & first_path, const std::string & second_path);
 };
 
-}  // namespace readers
+}  // namespace reindexers
 }  // namespace rosbag2_cpp
 
 #ifdef _WIN32
 # pragma warning(pop)
 #endif
 
-#endif  // ROSBAG2_CPP__READERS__SEQUENTIAL_REINDEXER_HPP_
+#endif  // ROSBAG2_CPP__REINDEXERS__SEQUENTIAL_REINDEXER_HPP_

@@ -88,9 +88,9 @@ public:
 
   /**
    * Reconstruct the metadata yaml file from the stored data in the bag.
-   * 
+   *
    * \param uri path to the bag
-   * \param storage_options Options regarding the storage (e.g. bag file name) 
+   * \param storage_options Options regarding the storage (e.g. bag file name)
    * \param record_options Options regarding how the file was recorded (e.g. compression format)
    */
   ROSBAG2_TRANSPORT_PUBLIC
