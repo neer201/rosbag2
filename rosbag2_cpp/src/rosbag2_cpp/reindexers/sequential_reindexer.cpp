@@ -146,21 +146,6 @@ void SequentialReindexer::open(
   if (!storage_) {
     throw std::runtime_error{"No storage could be initialized. Abort"};
   }
-  // metadata_ = storage_->get_metadata();
-  // metadata_.relative_file_paths.clear();  // The found path is going to be incorrect since we're accessing a random DB
-  // for (const auto & path : files) {
-  //   auto cleaned_path = strip_parent_path(path);
-  //   // std::cout << "Cleaned: " << cleaned_path << "\n";
-  //   metadata_.relative_file_paths.push_back(cleaned_path);
-  // }
-  // file_paths_ = metadata_.relative_file_paths;
-  // current_file_iterator_ = file_paths_.begin();
-  // auto topics = metadata_.topics_with_message_count;
-  // if (topics.empty()) {
-  //   ROSBAG2_CPP_LOG_WARN("No topics were listed in metadata.");
-  //   return;
-  // }
-  // fill_topics_metadata();
 }
 
 void SequentialReindexer::fill_topics_metadata()

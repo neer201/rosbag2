@@ -53,22 +53,8 @@ public:
 
   ~Reindexer();
 
-  // /**
-  //  * Throws if file could not be opened.
-  //  * This must be called before any other function is used.
-  //  * The rosbag is automatically closed on destruction.
-  //  *
-  //  * If the `output_serialization_format` within the `converter_options` is not the same as the
-  //  * format of the underlying stored data, a converter will be used to automatically convert the
-  //  * data to the specified output format.
-  //  * Throws if the converter plugin does not exist.
-  //  *
-  //  * \param storage_options Options to configure the storage
-  //  */
-  // void open(const StorageOptions & storage_options);
-
   /**
-   * Attempts to create a metadata file from the opened bag
+   * Attempts to create a metadata file from the specified bag
    *
    * \throws runtime_error if the Reader is not open.
    */

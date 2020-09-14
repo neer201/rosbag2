@@ -33,12 +33,6 @@ Reindexer::Reindexer(std::unique_ptr<reindexer_interfaces::BaseReindexerInterfac
 
 Reindexer::~Reindexer(){}
 
-// void Reindexer::open(
-//   const StorageOptions & storage_options)
-// {
-//   reindexer_impl->open(storage_options);
-// }
-
 void Reindexer::reindex(const StorageOptions & storage_options)
 {
   reindexer_impl->reindex(storage_options);
