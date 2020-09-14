@@ -60,10 +60,8 @@ public:
 
   virtual ~SequentialReindexer();
 
-  void open(
-    const StorageOptions & storage_options) override;
 
-  void reindex() override;
+  void reindex(const StorageOptions & storage_options) override;
 
   void fill_topics_metadata();
 
@@ -86,13 +84,17 @@ private:
   std::string base_folder_;
   std::shared_ptr<SerializationFormatConverterFactoryInterface> converter_factory_{};
 
-  std::vector<std::string> get_database_files(std::string base_folder);
+  std::vector<std::string> get_database_files(const std::string &base_folder);
+
+  void open(
+    const std::string & database_file,
+    const StorageOptions & storage_options);
 
   // Prepares the metadata by setting initial values.
-  void init_metadata();
+  void init_metadata(const std::vector<std::string> &files);
 
   // Attempts to harvest metadata from all bag files, and aggregates the result
-  void aggregate_metadata();
+  void aggregate_metadata(const std::vector<std::string> &files, const StorageOptions & storage_options);
 
   // Compairson function for std::sort with our filepath convention
   static bool comp_rel_file(const std::string &first_path, const std::string &second_path);

@@ -38,10 +38,10 @@ class ROSBAG2_CPP_PUBLIC BaseReindexerInterface
 public:
   virtual ~BaseReindexerInterface() {}
 
-  virtual void open(
-    const StorageOptions & storage_options) = 0;
+  // virtual void open(
+  //   const StorageOptions & storage_options) = 0;
 
-  virtual void reindex() = 0;
+  virtual void reindex(const StorageOptions & storage_options) = 0;
 };
 
 }  // namespace reindexer_interfaces

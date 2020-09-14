@@ -118,8 +118,7 @@ void  Rosbag2Transport::reindex(
   const StorageOptions & storage_options)
 {
   try {
-    reindexer_->open(storage_options);
-    reindexer_->reindex();
+    reindexer_->reindex(storage_options);
   } catch (std::runtime_error & e) {
     ROSBAG2_TRANSPORT_LOG_ERROR("Failed to reindex: %s", e.what());
   }

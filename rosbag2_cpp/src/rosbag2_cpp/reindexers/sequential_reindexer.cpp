@@ -113,12 +113,11 @@ bool SequentialReindexer::comp_rel_file(const std::string &first_path, const std
 
 }
 
-std::vector<std::string> SequentialReindexer::get_database_files(std::string base_folder)
+std::vector<std::string> SequentialReindexer::get_database_files(const std::string &base_folder)
 {
   // Look in the uri directory to see what database files are there
   std::vector<std::string> output;
-  for(auto& p_: boost::filesystem::directory_iterator(base_folder))
-  {
+  for(auto& p_: boost::filesystem::directory_iterator(base_folder)) {
     // We are ONLY interested in database files
     if (p_.path().extension() != ".db3")
     {
@@ -126,6 +125,7 @@ std::vector<std::string> SequentialReindexer::get_database_files(std::string bas
     }
 
     output.emplace_back(p_.path().c_str());
+    std::cout << "Found path: " << p_.path().c_str() << "\n";
   }
 
   // Sort relative file path by database number
@@ -135,46 +135,32 @@ std::vector<std::string> SequentialReindexer::get_database_files(std::string bas
 
 }
 
-// std::string get_first_bagfile(const StorageOptions & storage_options)
-// {
-//   auto uri = storage_options.uri;
-
-//   // First job is to find the database files in the bag
-
-
-// }
-
 void SequentialReindexer::open(
+  const std::string & database_file,
   const StorageOptions & storage_options)
 {
-  base_folder_ = storage_options.uri;
-  auto files = get_database_files(base_folder_);
-  if (files.empty()){
-    ROSBAG2_CPP_LOG_ERROR("No database files found for reindexing. Abort");
-    return;
-  }
   // Since this is a reindexing operation, assume that there is no metadata.yaml file.
   // As such, ask the storage with the given URI for its metadata.
   storage_ = storage_factory_->open_read_only(
-    files[0], storage_options.storage_id);
+    database_file, storage_options.storage_id);
   if (!storage_) {
     throw std::runtime_error{"No storage could be initialized. Abort"};
   }
-  metadata_ = storage_->get_metadata();
-  metadata_.relative_file_paths.clear();  // The found path is going to be incorrect since we're accessing a random DB
-  for (const auto & path : files) {
-    auto cleaned_path = strip_parent_path(path);
-    // std::cout << "Cleaned: " << cleaned_path << "\n";
-    metadata_.relative_file_paths.push_back(cleaned_path);
-  }
-  file_paths_ = metadata_.relative_file_paths;
-  current_file_iterator_ = file_paths_.begin();
-  auto topics = metadata_.topics_with_message_count;
-  if (topics.empty()) {
-    ROSBAG2_CPP_LOG_WARN("No topics were listed in metadata.");
-    return;
-  }
-  fill_topics_metadata();
+  // metadata_ = storage_->get_metadata();
+  // metadata_.relative_file_paths.clear();  // The found path is going to be incorrect since we're accessing a random DB
+  // for (const auto & path : files) {
+  //   auto cleaned_path = strip_parent_path(path);
+  //   // std::cout << "Cleaned: " << cleaned_path << "\n";
+  //   metadata_.relative_file_paths.push_back(cleaned_path);
+  // }
+  // file_paths_ = metadata_.relative_file_paths;
+  // current_file_iterator_ = file_paths_.begin();
+  // auto topics = metadata_.topics_with_message_count;
+  // if (topics.empty()) {
+  //   ROSBAG2_CPP_LOG_WARN("No topics were listed in metadata.");
+  //   return;
+  // }
+  // fill_topics_metadata();
 }
 
 void SequentialReindexer::fill_topics_metadata()
@@ -187,28 +173,88 @@ void SequentialReindexer::fill_topics_metadata()
   }
 }
 
-// void SequentialReindexer::init_metadata()
-// {
-//   metadata_ = rosbag2_storage::BagMetadata{};
-//   metadata_.storage_identifier = storage_->get_storage_identifier();
-//   metadata_.starting_time = std::chrono::time_point<std::chrono::high_resolution_clock>(
-//     std::chrono::nanoseconds::max());
-//   // metadata_.relative_file_paths = {strip_parent_path(storage_->get_relative_file_path())};
-//   for (const auto & path : metadata_.relative_file_paths) {
-//     std::cout << path << "\n";
-//   }
-// }
-
-void SequentialReindexer::aggregate_metadata()
+void SequentialReindexer::init_metadata(const std::vector<std::string> &files)
 {
+  metadata_ = rosbag2_storage::BagMetadata{};
+  // metadata_.storage_identifier = storage_->get_storage_identifier();
+  metadata_.storage_identifier = "sqlite3"; // This reindexer will only work on SQLite files, so this can't change
+  metadata_.starting_time = std::chrono::time_point<std::chrono::high_resolution_clock>(
+    std::chrono::nanoseconds::max());
+  
+  // Record the relative paths to the metadata
+  for (const auto & path : files) {
+    auto cleaned_path = strip_parent_path(path);
+    metadata_.relative_file_paths.push_back(cleaned_path);
+  }
+}
+
+void SequentialReindexer::aggregate_metadata(const std::vector<std::string> &files, const StorageOptions & storage_options)
+{
+  // In order to most accurately reconstruct the metadata, we need to 
+  // visit each of the contained relative database files in the bag,
+  // open them, slurp up the info, and stuff it into the master
+  // metadata object.
+  ROSBAG2_CPP_LOG_INFO("Extracting metadata from database(s)");
+  for (const auto &f_ : files) {
+    open(f_, storage_options);  // Class storage_ is now full
+
+    auto temp_metadata = storage_->get_metadata();
+    
+    // Last opened file will have our starting time
+    metadata_.starting_time = temp_metadata.starting_time;
+    metadata_.duration += temp_metadata.duration;
+    metadata_.message_count += temp_metadata.message_count;
+
+    // Add the topic metadata
+    for (const auto & topic : temp_metadata.topics_with_message_count) {
+      std::cout << "Topic name: \"" << topic.topic_metadata.name << "\" QOS profiles: \"" << topic.topic_metadata.offered_qos_profiles << "\"\n";
+      auto found_topic = std::find_if(metadata_.topics_with_message_count.begin(), metadata_.topics_with_message_count.end(),
+        [&topic](const rosbag2_storage::TopicInformation & agg_topic){return topic.topic_metadata.name == agg_topic.topic_metadata.name;});
+      if (found_topic == metadata_.topics_with_message_count.end()) {
+        // It's a new topic. Add it.
+        metadata_.topics_with_message_count.emplace_back(topic);
+      } else {
+        // Merge in the new information
+        found_topic->message_count += topic.message_count;
+        if (topic.topic_metadata.offered_qos_profiles != "") {
+          found_topic->topic_metadata.offered_qos_profiles = topic.topic_metadata.offered_qos_profiles;
+        }
+        if (topic.topic_metadata.serialization_format != "") {
+          found_topic->topic_metadata.serialization_format = topic.topic_metadata.serialization_format;
+        }
+        if (topic.topic_metadata.type != "") {
+          found_topic->topic_metadata.type = topic.topic_metadata.type;
+        }
+      }
+
+    }
+
+    ROSBAG2_CPP_LOG_INFO("Closing database");
+    storage_.reset(); // Class storage_ is now empty
+  }
 
 }
 
-void SequentialReindexer::reindex()
+void SequentialReindexer::reindex(const StorageOptions & storage_options)
 {
   ROSBAG2_CPP_LOG_INFO("Beginning Reindex Operation.");
-  // init_metadata();  // Create a baseline to start from
 
+  // Identify all database files
+  base_folder_ = storage_options.uri;
+  auto files = get_database_files(base_folder_);
+  std::cout << "Finished getting database files\n";
+  if (files.empty()){
+    ROSBAG2_CPP_LOG_ERROR("No database files found for reindexing. Abort");
+    return;
+  }
+
+  // Create initial metadata
+  init_metadata(files);
+
+  // Collect all metadata from database files
+  aggregate_metadata(files, storage_options);
+
+  // Perform final touch-up
   finalize_metadata();
 
   metadata_io_->write_metadata(base_folder_, metadata_);
