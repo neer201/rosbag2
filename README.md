@@ -125,6 +125,14 @@ Topic information: Topic: /chatter | Type: std_msgs/String | Count: 9 | Serializ
                    Topic: /my_chatter | Type: std_msgs/String | Count: 18 | Serialization Format: cdr
 ```
 
+### Reindexing Data
+
+In the event that a bag file becomes unreadable, due to either a corrupted or missing `metadata.yaml` file within the bag, you can attempt to recover the bag by reindexing:
+```
+$ ros2 bag reindex <bag_file>
+```
+This will attempt to read the internal storage of the bag file to reconstruct a workable `metadata.yaml` file. It is not guaranteed to be the exact same as a file generated during the recording process. You may have to check the file manually to make sure all the details are correct.
+
 ### Using in launch
 
 We can invoke the command line tool from a ROS launch script as an *executable* (not a *node* action).
