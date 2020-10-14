@@ -14,8 +14,9 @@
 
 #include <gmock/gmock.h>
 
-#include <cstdlib>
 #include <errno.h>
+
+#include <cstdlib>
 #include <future>
 #include <iostream>
 #include <memory>
@@ -77,7 +78,7 @@ public:
   const char * const NAME_KEY = "name";
   const char * const TYPE_KEY = "type";
   const char * const SF_KEY = "serialization_format";
-  const char * const QOS_KEY = "qos_profiles";
+  const char * const QOS_KEY = "offered_qos_profiles";
 
   // Compression section
   const char * const CFORMAT_KEY = "compression_format";
@@ -291,32 +292,22 @@ TEST_F(ReindexEndToEndTestFixture, reindex_end_to_end_test) {
   std::cout << "Checking topics" << std::endl;
   EXPECT_TRUE(root_node[TWMC_KEY]);
   if (root_node[TWMC_KEY]) {
-    YAML::Emitter out;
-    YAML::Node new_topics = root_node[TWMC_KEY];
-    YAML::Node old_topics = original_metadata[TWMC_KEY];
-    std::cout << "new_topics:" << std::endl;
-    out << new_topics;
-    std::cout << out.c_str();
+    YAML::Node new_twmc_node = root_node[TWMC_KEY];
+    YAML::Node old_twmc_node = original_metadata[TWMC_KEY];
 
     // The ordering of topics is not guaranteed to be preserved during
     // the reindexing process. So we have to iterate over each topic
     // in the new metadata, and see if it exists in the original
-    for (YAML::const_iterator new_metadata_iter = new_topics.begin(); new_metadata_iter != new_topics.end(); new_metadata_iter++) {
+    for (YAML::const_iterator new_metadata_iter = new_twmc_node.begin(); new_metadata_iter != new_twmc_node.end(); ++new_metadata_iter) {
       bool found_match = false;
-      std::cout << "Getting first topic name" << std::endl;
-      YAML::Node new_topic = new_metadata_iter->first;
-      std::cout << "new_topic:" << std::endl;
-      out << new_topic;
-      std::cout << out.c_str();
+      YAML::Node new_topic = *new_metadata_iter;
       YAML::Node new_topic_metadata = new_topic[TOPIC_KEY];
-      std::string new_topic_name = new_topic[NAME_KEY].as<std::string>();
+      std::string new_topic_name = new_topic_metadata[NAME_KEY].as<std::string>();
       
-      for (YAML::const_iterator orig_metadata_iter = old_topics.begin(); orig_metadata_iter != old_topics.end(); orig_metadata_iter++) {
-        std::cout << "Getting second topic name" << std::endl;
-        YAML::Node old_topic = orig_metadata_iter->first;
-        std::cout << old_topic << std::endl;
+      for (YAML::const_iterator orig_metadata_iter = old_twmc_node.begin(); orig_metadata_iter != old_twmc_node.end(); ++orig_metadata_iter) {
+        YAML::Node old_topic = *orig_metadata_iter;
         YAML::Node old_topic_metadata = old_topic[TOPIC_KEY];
-        std::string old_topic_name = old_topic[NAME_KEY].as<std::string>();
+        std::string old_topic_name = old_topic_metadata[NAME_KEY].as<std::string>();
         
         if (new_topic_name == old_topic_name) {
           // A match! The testing can now continue
@@ -338,8 +329,8 @@ TEST_F(ReindexEndToEndTestFixture, reindex_end_to_end_test) {
           EXPECT_EQ(new_qos, old_qos);
 
           // Check message count
-          long new_count = new_topic_metadata[COUNT_KEY].as<long>();
-          long old_count = old_topic_metadata[COUNT_KEY].as<long>();
+          long new_count = new_topic[COUNT_KEY].as<long>();
+          long old_count = old_topic[COUNT_KEY].as<long>();
           EXPECT_EQ(new_count, old_count);
           break;
         }
