@@ -114,7 +114,7 @@ TEST_F(ReindexEndToEndTestFixture, reindex_end_to_end_test) {
   std::string old_name = database_path_ + "/cdr_test/metadata.yaml";
   std::string new_name = database_path_ + "/cdr_test/metadata_old.yaml";
 
-  bool rename_success = std::rename(old_name.c_str(), new_name.c_str()) == 0; 
+  bool rename_success = std::rename(old_name.c_str(), new_name.c_str()) == 0;
   EXPECT_EQ(rename_success, true);
   if (!rename_success) {
     std::perror("Error occurred during rename: ");
@@ -205,8 +205,10 @@ TEST_F(ReindexEndToEndTestFixture, reindex_end_to_end_test) {
   std::cout << "Checking relative file paths" << std::endl;
   EXPECT_TRUE(root_node[RFP_KEY]);
   if (root_node[RFP_KEY]) {
-    std::vector<std::string> new_filepaths = root_node[RFP_KEY].as<std::vector<std::string>>();
-    std::vector<std::string> original_filepaths = original_metadata[RFP_KEY].as<std::vector<std::string>>();
+    std::vector<std::string> new_filepaths =
+      root_node[RFP_KEY].as<std::vector<std::string>>();
+    std::vector<std::string> original_filepaths =
+      original_metadata[RFP_KEY].as<std::vector<std::string>>();
     EXPECT_EQ(new_filepaths, original_filepaths);
   }
 
@@ -228,8 +230,8 @@ TEST_F(ReindexEndToEndTestFixture, reindex_end_to_end_test) {
     YAML::Node original_duration_node = original_metadata[DURATION_KEY];
     EXPECT_TRUE(duration_node[NS_KEY]);
     if (duration_node[NS_KEY]) {
-      long new_duration = duration_node[NS_KEY].as<long>();
-      long original_duration = original_duration_node[NS_KEY].as<long>();
+      int64_t new_duration = duration_node[NS_KEY].as<int64_t>();
+      int64_t original_duration = original_duration_node[NS_KEY].as<int64_t>();
       EXPECT_EQ(new_duration, original_duration);
     }
   }
@@ -252,8 +254,8 @@ TEST_F(ReindexEndToEndTestFixture, reindex_end_to_end_test) {
     YAML::Node original_starting_time_node = original_metadata[ST_KEY];
     EXPECT_TRUE(starting_time[NSSE_KEY]);
     if (starting_time[NSSE_KEY]) {
-      long new_start = starting_time[NSSE_KEY].as<long>();
-      long original_start = original_starting_time_node[NSSE_KEY].as<long>();
+      int64_t new_start = starting_time[NSSE_KEY].as<int64_t>();
+      int64_t original_start = original_starting_time_node[NSSE_KEY].as<int64_t>();
       EXPECT_EQ(new_start, original_start);
     }
   }
@@ -265,7 +267,7 @@ TEST_F(ReindexEndToEndTestFixture, reindex_end_to_end_test) {
    *    nanoseconds_since_epoch: <number>
    *  message_count: <number>               <- WE ARE HERE
    *  topics_with_message_count: <sequence>
-   *...    
+   *...
    * */
   std::cout << "Checking message count" << std::endl;
   EXPECT_TRUE(root_node[COUNT_KEY]);
@@ -298,17 +300,23 @@ TEST_F(ReindexEndToEndTestFixture, reindex_end_to_end_test) {
     // The ordering of topics is not guaranteed to be preserved during
     // the reindexing process. So we have to iterate over each topic
     // in the new metadata, and see if it exists in the original
-    for (YAML::const_iterator new_metadata_iter = new_twmc_node.begin(); new_metadata_iter != new_twmc_node.end(); ++new_metadata_iter) {
+    for (YAML::const_iterator new_metadata_iter = new_twmc_node.begin();
+      new_metadata_iter != new_twmc_node.end();
+      ++new_metadata_iter)
+    {
       bool found_match = false;
       YAML::Node new_topic = *new_metadata_iter;
       YAML::Node new_topic_metadata = new_topic[TOPIC_KEY];
       std::string new_topic_name = new_topic_metadata[NAME_KEY].as<std::string>();
-      
-      for (YAML::const_iterator orig_metadata_iter = old_twmc_node.begin(); orig_metadata_iter != old_twmc_node.end(); ++orig_metadata_iter) {
+
+      for (YAML::const_iterator orig_metadata_iter = old_twmc_node.begin();
+        orig_metadata_iter != old_twmc_node.end();
+        ++orig_metadata_iter)
+      {
         YAML::Node old_topic = *orig_metadata_iter;
         YAML::Node old_topic_metadata = old_topic[TOPIC_KEY];
         std::string old_topic_name = old_topic_metadata[NAME_KEY].as<std::string>();
-        
+
         if (new_topic_name == old_topic_name) {
           // A match! The testing can now continue
           found_match = true;
@@ -329,14 +337,14 @@ TEST_F(ReindexEndToEndTestFixture, reindex_end_to_end_test) {
           EXPECT_EQ(new_qos, old_qos);
 
           // Check message count
-          long new_count = new_topic[COUNT_KEY].as<long>();
-          long old_count = old_topic[COUNT_KEY].as<long>();
+          int64_t new_count = new_topic[COUNT_KEY].as<int64_t>();
+          int64_t old_count = old_topic[COUNT_KEY].as<int64_t>();
           EXPECT_EQ(new_count, old_count);
           break;
         }
       }
 
-      EXPECT_TRUE(found_match); // We expected to have a name match
+      EXPECT_TRUE(found_match);   // We expected to have a name match
     }
   }
 
@@ -365,7 +373,7 @@ TEST_F(ReindexEndToEndTestFixture, reindex_end_to_end_test) {
    *  compression_mode: <string>    <- WE ARE HERE
    * <EOF>
    * */
-  std::cout <<"Checking compression mode" << std::endl;
+  std::cout << "Checking compression mode" << std::endl;
   EXPECT_TRUE(root_node[MODE_KEY]);
   if (root_node[MODE_KEY]) {
     std::string new_mode = root_node[MODE_KEY].as<std::string>();
