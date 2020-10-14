@@ -89,13 +89,28 @@ void SequentialWriter::open(
   max_bagfile_size_ = storage_options.max_bagfile_size;
   max_bagfile_duration = std::chrono::seconds(storage_options.max_bagfile_duration);
   max_cache_size_ = storage_options.max_cache_size;
-
   cache_.reserve(max_cache_size_);
+  current_cache_size_ = 0u;
 
   if (converter_options.output_serialization_format !=
     converter_options.input_serialization_format)
   {
     converter_ = std::make_unique<Converter>(converter_options, converter_factory_);
+  }
+
+  rcpputils::fs::path db_path(base_folder_);
+  if (db_path.is_directory()) {
+    std::stringstream error;
+    error << "Database directory already exists (" << db_path.string() <<
+      "), can't overwrite existing database";
+    throw std::runtime_error{error.str()};
+  }
+
+  bool dir_created = rcpputils::fs::create_directories(db_path);
+  if (!dir_created) {
+    std::stringstream error;
+    error << "Failed to create database directory (" << db_path.string() << ").";
+    throw std::runtime_error{error.str()};
   }
 
   const auto storage_uri = format_storage_uri(base_folder_, 0);
@@ -205,7 +220,14 @@ void SequentialWriter::write(std::shared_ptr<rosbag2_storage::SerializedBagMessa
   }
 
   // Update the message count for the Topic.
-  ++topics_names_to_info_.at(message->topic_name).message_count;
+  try {
+    ++topics_names_to_info_.at(message->topic_name).message_count;
+  } catch (const std::out_of_range & /* oor */) {
+    std::stringstream errmsg;
+    errmsg << "Failed to write on topic '" << message->topic_name <<
+      "'. Call create_topic() before first write.";
+    throw std::runtime_error(errmsg.str());
+  }
 
   if (should_split_bagfile()) {
     split_bagfile();
@@ -221,18 +243,28 @@ void SequentialWriter::write(std::shared_ptr<rosbag2_storage::SerializedBagMessa
   const auto duration = message_timestamp - metadata_.starting_time;
   metadata_.duration = std::max(metadata_.duration, duration);
 
+  auto converted_msg = get_writeable_message(message);
   // if cache size is set to zero, we directly call write
   if (max_cache_size_ == 0u) {
-    storage_->write(converter_ ? converter_->convert(message) : message);
+    storage_->write(converted_msg);
   } else {
-    cache_.push_back(converter_ ? converter_->convert(message) : message);
-    if (cache_.size() >= max_cache_size_) {
+    cache_.push_back(converted_msg);
+    current_cache_size_ += converted_msg->serialized_data->buffer_length;
+    if (current_cache_size_ >= max_cache_size_) {
       storage_->write(cache_);
       // reset cache
       cache_.clear();
       cache_.reserve(max_cache_size_);
+      current_cache_size_ = 0u;
     }
   }
+}
+
+std::shared_ptr<rosbag2_storage::SerializedBagMessage>
+SequentialWriter::get_writeable_message(
+  std::shared_ptr<rosbag2_storage::SerializedBagMessage> message)
+{
+  return converter_ ? converter_->convert(message) : message;
 }
 
 bool SequentialWriter::should_split_bagfile() const

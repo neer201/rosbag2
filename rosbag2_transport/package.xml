@@ -5,6 +5,7 @@
   <version>0.3.2</version>
   <description>Layer encapsulating ROS middleware to allow rosbag2 to be used with or without middleware</description>
   <maintainer email="karsten@openrobotics.org">Karsten Knese</maintainer>
+  <maintainer email="michael.jeronimo@openrobotics.org">Michael Jeronimo</maintainer>
   <maintainer email="ros-tooling@googlegroups.com">ROS Tooling Working Group</maintainer>
   <license>Apache License 2.0</license>
 
@@ -14,6 +15,7 @@
   <depend>rclcpp</depend>
   <depend>rosbag2_compression</depend>
   <depend>rosbag2_cpp</depend>
+  <depend>rosbag2_storage</depend>
   <depend>rmw</depend>
   <depend>rpyutils</depend>
   <depend>shared_queues_vendor</depend>
